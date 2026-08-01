@@ -172,6 +172,62 @@ class AccountPool:
             self.path.write_text(content, encoding="utf-8")
             self.reload()
 
+    def check_liveness(self, index: int) -> dict[str, Any]:
+        with self._lock:
+            if index < 0 or index >= len(self._accounts):
+                raise AccountError(f"account index {index} out of bounds")
+            acc = dict(self._accounts[index])
+
+        token = acc["access_token"]
+        proxy = acc.get("proxy", "")
+        
+        from app.config import CLIENT_BUILD_NUMBER, CLIENT_VERSION, DEFAULT_UA
+        from app.http_client import build_session
+
+        sess = build_session(proxy=proxy)
+        try:
+            resp = sess.get(
+                "https://chatgpt.com/backend-api/models",
+                headers={
+                    "accept": "*/*",
+                    "origin": "https://chatgpt.com",
+                    "referer": "https://chatgpt.com/",
+                    "user-agent": DEFAULT_UA,
+                    "oai-client-version": CLIENT_VERSION,
+                    "oai-client-build-number": CLIENT_BUILD_NUMBER,
+                    "authorization": "Bearer " + token,
+                },
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                with self._lock:
+                    if index < len(self._accounts) and self._accounts[index]["access_token"] == token:
+                        self._accounts[index]["status"] = "正常"
+                        self._accounts[index]["disabled"] = False
+                        self._save_unlocked()
+                return {"index": index, "alive": True, "status_code": 200, "email": acc.get("email")}
+            elif resp.status_code == 401:
+                self.mark_invalid(token)
+                return {"index": index, "alive": False, "status_code": 401, "detail": "Token 已失效/过期 (401)"}
+            else:
+                return {"index": index, "alive": False, "status_code": resp.status_code, "detail": f"响应状态异常 ({resp.status_code})"}
+        except Exception as e:
+            return {"index": index, "alive": False, "status_code": 0, "detail": f"网络握手失败: {str(e)[:120]}"}
+        finally:
+            try:
+                sess.close()
+            except Exception:
+                pass
+
+    def check_all_liveness(self) -> list[dict[str, Any]]:
+        with self._lock:
+            count = len(self._accounts)
+        results = []
+        for i in range(count):
+            results.append(self.check_liveness(i))
+        return results
+
 
 account_pool = AccountPool()
+
 

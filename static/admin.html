@@ -631,10 +631,19 @@
             <span class="search-icon">🔍</span>
             <input type="text" id="searchInput" class="form-input" placeholder="搜索 Email 或 Token..." oninput="filterAccounts()">
           </div>
-          <button class="btn btn-primary" onclick="openAddModal()">
-            ➕ 添加 Access Token 账号
-          </button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="checkAllAccounts()" id="btnCheckAll">
+              ⚡ 测活全部账号
+            </button>
+            <button class="btn btn-secondary" onclick="reloadAccountsPool()" title="无需重启服务，即刻热加载磁盘文件">
+              🔄 内存热重载
+            </button>
+            <button class="btn btn-primary" onclick="openAddModal()">
+              ➕ 添加 Token 账号
+            </button>
+          </div>
         </div>
+
         <table>
           <thead>
             <tr>
@@ -866,6 +875,9 @@
           <td><span style="font-size:0.8rem; color:var(--text-muted);">${acc.proxy || '默认'}</span></td>
           <td style="text-align: right;">
             <div class="action-group" style="justify-content: flex-end;">
+              <button class="btn btn-secondary btn-sm" onclick="checkSingleAccount(${i})" id="btnCheck_${i}" title="测活当前 Token">
+                🔍 测活
+              </button>
               <button class="btn btn-secondary btn-sm" onclick="toggleDisable(${i}, ${!acc.disabled})">
                 ${acc.disabled ? '启用' : '禁用'}
               </button>
@@ -876,6 +888,56 @@
         </tr>
       `).join("");
     }
+
+    async function checkSingleAccount(index) {
+      const btn = document.getElementById(`btnCheck_${index}`);
+      if (btn) btn.textContent = "⏳ 检测中...";
+      try {
+        const res = await apiFetch(`/api/admin/accounts/${index}/check`, { method: "POST" });
+        if (res && res.ok && res.result) {
+          if (res.result.alive) {
+            showToast(`账号 #${index + 1} 存活正常！(HTTP 200)`, "✅");
+          } else {
+            showToast(`账号 #${index + 1} 检测失败: ${res.result.detail || '未存活'}`, "⚠️");
+          }
+          loadData();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (btn) btn.textContent = "🔍 测活";
+      }
+    }
+
+    async function checkAllAccounts() {
+      const btn = document.getElementById("btnCheckAll");
+      if (btn) btn.textContent = "⏳ 正在检测全池...";
+      showToast("正在逐个测试所有账号的存活状态...", "⚡");
+      try {
+        const res = await apiFetch("/api/admin/accounts/check-all", { method: "POST" });
+        if (res && res.ok) {
+          showToast(`检测完成！存活: ${res.alive_count} / 总数: ${res.total}`, "🎉");
+          loadData();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (btn) btn.textContent = "⚡ 测活全部账号";
+      }
+    }
+
+    async function reloadAccountsPool() {
+      try {
+        const res = await apiFetch("/api/admin/accounts/reload", { method: "POST" });
+        if (res && res.ok) {
+          showToast(`内存热重载成功！共加载 ${res.count} 个账号`, "🔄");
+          loadData();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
 
     function filterAccounts() {
       const q = document.getElementById("searchInput").value.toLowerCase();

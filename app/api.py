@@ -209,5 +209,31 @@ def create_router() -> APIRouter:
             "skip_ssl_verify": SKIP_SSL_VERIFY,
         }
 
+    @router.post("/api/admin/accounts/reload")
+    async def admin_reload_accounts(authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import account_pool
+        account_pool.reload()
+        return {"ok": True, "count": len(account_pool.list_accounts())}
+
+    @router.post("/api/admin/accounts/{index}/check")
+    async def admin_check_single_account(index: int, authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import AccountError, account_pool
+        try:
+            res = account_pool.check_liveness(index)
+            return {"ok": True, "result": res}
+        except AccountError as e:
+            raise HTTPException(status_code=400, detail={"error": str(e)})
+
+    @router.post("/api/admin/accounts/check-all")
+    async def admin_check_all_accounts(authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import account_pool
+        results = account_pool.check_all_liveness()
+        alive_count = sum(1 for r in results if r.get("alive"))
+        return {"ok": True, "total": len(results), "alive_count": alive_count, "results": results}
+
     return router
+
 
