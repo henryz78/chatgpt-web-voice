@@ -29,7 +29,19 @@ def create_app() -> FastAPI:
                 return {"error": "voice.html missing"}
             return FileResponse(path)
 
+        @app.get("/admin")
+        async def admin_redirect():
+            return RedirectResponse(url="/admin.html")
+
+        @app.get("/admin.html")
+        async def admin_page():
+            path = static_dir / "admin.html"
+            if not path.exists():
+                return {"error": "admin.html missing"}
+            return FileResponse(path)
+
     return app
 
 
 app = create_app()
+

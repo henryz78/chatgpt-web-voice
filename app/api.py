@@ -127,4 +127,87 @@ def create_router() -> APIRouter:
         session_id = body.voice_session_id or body.session_id
         return {"ok": True, "released": release_voice_session(session_id)}
 
+    # Admin Management Endpoints
+    @router.get("/api/admin/accounts")
+    async def admin_list_accounts(authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import account_pool
+        accounts = account_pool.list_accounts()
+        # mask sensitive access_token for listing summary
+        summary = []
+        for i, acc in enumerate(accounts):
+            tok = acc.get("access_token", "")
+            summary.append({
+                "index": i,
+                "email": acc.get("email", ""),
+                "access_token": tok,
+                "token_masked": (tok[:12] + "..." + tok[-8:]) if len(tok) > 20 else tok,
+                "device_id": acc.get("device_id", ""),
+                "proxy": acc.get("proxy", ""),
+                "status": acc.get("status", "正常"),
+                "disabled": bool(acc.get("disabled", False)),
+            })
+        return {"ok": True, "count": len(summary), "accounts": summary}
+
+    @router.post("/api/admin/accounts")
+    async def admin_add_account(body: dict, authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import AccountError, account_pool
+        try:
+            acc = account_pool.add_account(body)
+            return {"ok": True, "account": acc}
+        except AccountError as e:
+            raise HTTPException(status_code=400, detail={"error": str(e)})
+
+    @router.put("/api/admin/accounts/{index}")
+    async def admin_update_account(index: int, body: dict, authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import AccountError, account_pool
+        try:
+            acc = account_pool.update_account(index, body)
+            return {"ok": True, "account": acc}
+        except AccountError as e:
+            raise HTTPException(status_code=400, detail={"error": str(e)})
+
+    @router.delete("/api/admin/accounts/{index}")
+    async def admin_delete_account(index: int, authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import AccountError, account_pool
+        try:
+            acc = account_pool.delete_account(index)
+            return {"ok": True, "deleted": acc}
+        except AccountError as e:
+            raise HTTPException(status_code=400, detail={"error": str(e)})
+
+    @router.get("/api/admin/accounts/raw")
+    async def admin_get_raw(authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import account_pool
+        return {"ok": True, "content": account_pool.get_raw()}
+
+    @router.post("/api/admin/accounts/raw")
+    async def admin_save_raw(body: dict, authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.accounts import AccountError, account_pool
+        content = body.get("content", "")
+        try:
+            account_pool.save_raw(content)
+            return {"ok": True}
+        except AccountError as e:
+            raise HTTPException(status_code=400, detail={"error": str(e)})
+
+    @router.get("/api/admin/config")
+    async def admin_get_config(authorization: str | None = Header(default=None)):
+        require_admin(authorization)
+        from app.config import ACCOUNTS_FILE, AUTH_KEY, HTTP_PROXY, IMPERSONATE, SKIP_SSL_VERIFY
+        return {
+            "ok": True,
+            "auth_key_configured": bool(AUTH_KEY and AUTH_KEY != "change-me"),
+            "accounts_file": str(ACCOUNTS_FILE),
+            "http_proxy": HTTP_PROXY or "未配置",
+            "impersonate": IMPERSONATE,
+            "skip_ssl_verify": SKIP_SSL_VERIFY,
+        }
+
     return router
+

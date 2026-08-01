@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatGPT Web Voice - 管理员控制台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #09090b;
+      --bg-secondary: #121215;
+      --bg-card: #18181c;
+      --bg-card-hover: #222227;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-color-hover: rgba(255, 255, 255, 0.16);
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-light: rgba(99, 102, 241, 0.15);
+      --accent-glow: rgba(99, 102, 241, 0.3);
+
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --border-color: rgba(0, 0, 0, 0.08);
+      --border-color-hover: rgba(0, 0, 0, 0.16);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --accent-light: rgba(79, 70, 229, 0.08);
+      --accent-glow: rgba(79, 70, 229, 0.2);
+
+      --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    code, pre, textarea.mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Layout */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .logo-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-toggle, .btn-icon {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+
+    .theme-toggle:hover, .btn-icon:hover {
+      border-color: var(--border-color-hover);
+      background: var(--bg-card-hover);
+      transform: translateY(-1px);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* Auth Overlay Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition);
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--shadow);
+      transform: scale(0.95);
+      transition: var(--transition);
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Form controls */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.825rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .form-input, .form-select, textarea.form-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.925rem;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .form-input:focus, .form-select:focus, textarea.form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0.7rem 1.2rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: var(--transition);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-color-hover);
+      background: var(--bg-card-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-danger:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: var(--transition);
+    }
+
+    .stat-card:hover {
+      border-color: var(--border-color-hover);
+      transform: translateY(-2px);
+    }
+
+    .stat-val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .stat-lbl {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-secondary);
+      color: var(--accent);
+    }
+
+    /* Tabs Nav */
+    .tabs-header {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.25rem;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Account Table */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .table-toolbar {
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .search-box input {
+      padding-left: 2.5rem;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+
+    th {
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .badge-danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    .token-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+
+    .token-text:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .action-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* JSON Editor */
+    .json-editor-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+    }
+
+    textarea.json-textarea {
+      width: 100%;
+      height: 420px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      resize: vertical;
+      outline: none;
+    }
+
+    .json-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 0.85rem 1.25rem;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 2000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .empty-state {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-container">
+      <div class="logo-area">
+        <div class="logo-badge">V</div>
+        <div>
+          <div class="logo-title">ChatGPT Web Voice</div>
+          <div class="logo-subtitle">管理员配置控制台</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openVoicePage()">
+          🎙️ 返回通话界面
+        </button>
+        <button class="theme-toggle" id="themeToggle" title="切换深色/浅色模式">
+          🌙
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div>
+          <div class="stat-val" id="statTotal">0</div>
+          <div class="stat-lbl">托管账号总数</div>
+        </div>
+        <div class="stat-icon">👥</div>
+      </div>
+      <div class="stat-card">
+        <div>
+          <div class="stat-val" style="color: var(--success);" id="statActive">0</div>
+          <div class="stat-lbl">正常可用账号</div>
+        </div>
+        <div class="stat-icon">✅</div>
+      </div>
+      <div class="stat-card">
+        <div>
+          <div class="stat-val" style="color: var(--danger);" id="statDisabled">0</div>
+          <div class="stat-lbl">已禁用/失效账号</div>
+        </div>
+        <div class="stat-icon">⛔</div>
+      </div>
+      <div class="stat-card">
+        <div>
+          <div class="stat-val" style="font-size: 1.1rem; color: var(--accent);" id="statProxy">直连模式</div>
+          <div class="stat-lbl">出站代理状态</div>
+        </div>
+        <div class="stat-icon">🌐</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-header">
+      <button class="tab-btn active" onclick="switchTab('accountsTab', this)">📋 账号池管理</button>
+      <button class="tab-btn" onclick="switchTab('rawJsonTab', this)">📝 accounts.json 源码编辑</button>
+      <button class="tab-btn" onclick="switchTab('sysConfigTab', this)">⚙️ 系统运行时状态</button>
+    </div>
+
+    <!-- Tab 1: Accounts Pool -->
+    <div id="accountsTab" class="tab-content active">
+      <div class="table-container">
+        <div class="table-toolbar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" class="form-input" placeholder="搜索 Email 或 Token..." oninput="filterAccounts()">
+          </div>
+          <button class="btn btn-primary" onclick="openAddModal()">
+            ➕ 添加 Access Token 账号
+          </button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>账号名称 / Email</th>
+              <th>Access Token</th>
+              <th>状态</th>
+              <th>代理 (可选)</th>
+              <th style="text-align: right;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="accountsTableBody">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: Raw JSON Editor -->
+    <div id="rawJsonTab" class="tab-content">
+      <div class="json-editor-container">
+        <div style="margin-bottom: 0.75rem; color: var(--text-secondary); font-size: 0.85rem;">
+          💡 这里可以直接查看和编辑整份 <code>accounts.json</code> 源码。修改后点击“保存生效”将自动写入挂载的磁盘目录。
+        </div>
+        <textarea id="rawJsonTextarea" class="json-textarea mono" spellcheck="false"></textarea>
+        <div class="json-toolbar">
+          <button class="btn btn-secondary btn-sm" onclick="formatJson()">✨ 格式化 JSON</button>
+          <button class="btn btn-primary" onclick="saveRawJson()">💾 保存生效</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: System Config -->
+    <div id="sysConfigTab" class="tab-content">
+      <div class="json-editor-container">
+        <div style="display: grid; gap: 1rem;" id="sysConfigDetails">
+          <!-- System specs rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-card">
+      <div class="modal-title">🔐 管理员身份验证</div>
+      <div class="modal-desc">请输入环境变量中配置的 <code>VOICE_AUTH_KEY</code> 以访问控制台。</div>
+      <form onsubmit="handleAuthSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">AUTH KEY 密钥</label>
+          <input type="password" id="authKeyInput" class="form-input" placeholder="例如: change-me" required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">验证并登录</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add / Edit Account Modal -->
+  <div class="modal-overlay" id="accountModal">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-title" id="accountModalTitle">➕ 添加 ChatGPT 账号</div>
+      <div class="modal-desc">粘贴你的 ChatGPT Web 端 Access Token。</div>
+      <form onsubmit="handleSaveAccount(event)">
+        <input type="hidden" id="editIndex" value="-1">
+        <div class="form-group">
+          <label class="form-label">Email / 备注名称</label>
+          <input type="text" id="accEmail" class="form-input" placeholder="you@example.com (可选)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Access Token (必需)</label>
+          <textarea id="accToken" class="form-input mono" rows="4" placeholder="ey..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Device ID (可选，留空自动生成)</label>
+          <input type="text" id="accDeviceId" class="form-input mono" placeholder="xxxxxxxx-xxxx-xxxx">
+        </div>
+        <div class="form-group">
+          <label class="form-label">专属代理 (可选，针对该账号重写)</label>
+          <input type="text" id="accProxy" class="form-input" placeholder="http://user:pass@host:port">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="accDisabled" style="width: 18px; height: 18px; accent-color: var(--accent);">
+          <label for="accDisabled" style="font-size: 0.9rem; cursor: pointer;">禁用此账号 (暂停轮询使用)</label>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeAccountModal()">取消</button>
+          <button type="submit" class="btn btn-primary">保存账号</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span id="toastIcon">ℹ️</span>
+    <span id="toastMsg">提示信息</span>
+  </div>
+
+  <script>
+    let currentAuthKey = localStorage.getItem("admin_auth_key") || "";
+    let accountsData = [];
+
+    // Theme Switcher
+    const themeToggleBtn = document.getElementById("themeToggle");
+    let currentTheme = localStorage.getItem("admin_theme") || "dark";
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    themeToggleBtn.textContent = currentTheme === "dark" ? "🌙" : "☀️";
+
+    themeToggleBtn.addEventListener("click", () => {
+      currentTheme = currentTheme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", currentTheme);
+      localStorage.setItem("admin_theme", currentTheme);
+      themeToggleBtn.textContent = currentTheme === "dark" ? "🌙" : "☀️";
+    });
+
+    // Toast Utility
+    function showToast(msg, icon = "✅") {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastIcon").textContent = icon;
+      document.getElementById("toastMsg").textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    // HTTP Helper
+    async function apiFetch(url, options = {}) {
+      options.headers = options.headers || {};
+      if (currentAuthKey) {
+        options.headers["Authorization"] = "Bearer " + currentAuthKey;
+      }
+      try {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+          document.getElementById("authModal").classList.add("active");
+          throw new Error("401 Unauthorized");
+        }
+        return await res.json();
+      } catch (err) {
+        if (err.message !== "401 Unauthorized") {
+          showToast(err.message, "❌");
+        }
+        throw err;
+      }
+    }
+
+    // Auth Handler
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const val = document.getElementById("authKeyInput").value.trim();
+      currentAuthKey = val;
+      localStorage.setItem("admin_auth_key", val);
+      document.getElementById("authModal").classList.remove("active");
+      loadData();
+    }
+
+    // Tab Switching
+    function switchTab(tabId, btn) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(tabId).classList.add("active");
+
+      if (tabId === "rawJsonTab") {
+        loadRawJson();
+      }
+    }
+
+    // Load All Data
+    async function loadData() {
+      try {
+        const [accRes, cfgRes] = await Promise.all([
+          apiFetch("/api/admin/accounts"),
+          apiFetch("/api/admin/config")
+        ]);
+
+        if (accRes && accRes.ok) {
+          accountsData = accRes.accounts || [];
+          renderAccounts(accountsData);
+          updateStats(accRes.accounts, cfgRes);
+        }
+
+        if (cfgRes && cfgRes.ok) {
+          renderSysConfig(cfgRes);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function updateStats(accounts, config) {
+      document.getElementById("statTotal").textContent = accounts.length;
+      const activeCount = accounts.filter(a => !a.disabled).length;
+      document.getElementById("statActive").textContent = activeCount;
+      document.getElementById("statDisabled").textContent = accounts.length - activeCount;
+      document.getElementById("statProxy").textContent = config.http_proxy || "直连模式";
+    }
+
+    function renderAccounts(list) {
+      const tbody = document.getElementById("accountsTableBody");
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <div>暂无托管账号，点击右上方按钮添加一个吧！</div>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = list.map((acc, i) => `
+        <tr>
+          <td><strong>${i + 1}</strong></td>
+          <td>${acc.email || '<span style="color:var(--text-muted);">(未设置)</span>'}</td>
+          <td>
+            <span class="token-text" onclick="copyToken('${acc.access_token}')" title="点击复制完整 Token">
+              ${acc.token_masked}
+            </span>
+          </td>
+          <td>
+            <span class="badge ${acc.disabled ? 'badge-danger' : 'badge-success'}">
+              ${acc.disabled ? '⛔ 已禁用' : '✅ 正常'}
+            </span>
+          </td>
+          <td><span style="font-size:0.8rem; color:var(--text-muted);">${acc.proxy || '默认'}</span></td>
+          <td style="text-align: right;">
+            <div class="action-group" style="justify-content: flex-end;">
+              <button class="btn btn-secondary btn-sm" onclick="toggleDisable(${i}, ${!acc.disabled})">
+                ${acc.disabled ? '启用' : '禁用'}
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="openEditModal(${i})">编辑</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteAccount(${i})">删除</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function filterAccounts() {
+      const q = document.getElementById("searchInput").value.toLowerCase();
+      const filtered = accountsData.filter(a => 
+        (a.email && a.email.toLowerCase().includes(q)) || 
+        (a.access_token && a.access_token.toLowerCase().includes(q))
+      );
+      renderAccounts(filtered);
+    }
+
+    function copyToken(token) {
+      navigator.clipboard.writeText(token);
+      showToast("Token 已复制到剪贴板！", "📋");
+    }
+
+    // Modal Control
+    function openAddModal() {
+      document.getElementById("editIndex").value = "-1";
+      document.getElementById("accountModalTitle").textContent = "➕ 添加 ChatGPT 账号";
+      document.getElementById("accEmail").value = "";
+      document.getElementById("accToken").value = "";
+      document.getElementById("accDeviceId").value = "";
+      document.getElementById("accProxy").value = "";
+      document.getElementById("accDisabled").checked = false;
+      document.getElementById("accountModal").classList.add("active");
+    }
+
+    function openEditModal(index) {
+      const acc = accountsData[index];
+      if (!acc) return;
+      document.getElementById("editIndex").value = index;
+      document.getElementById("accountModalTitle").textContent = "✏️ 编辑 ChatGPT 账号";
+      document.getElementById("accEmail").value = acc.email || "";
+      document.getElementById("accToken").value = acc.access_token || "";
+      document.getElementById("accDeviceId").value = acc.device_id || "";
+      document.getElementById("accProxy").value = acc.proxy || "";
+      document.getElementById("accDisabled").checked = acc.disabled || false;
+      document.getElementById("accountModal").classList.add("active");
+    }
+
+    function closeAccountModal() {
+      document.getElementById("accountModal").classList.remove("active");
+    }
+
+    async function handleSaveAccount(e) {
+      e.preventDefault();
+      const index = parseInt(document.getElementById("editIndex").value, 10);
+      const payload = {
+        email: document.getElementById("accEmail").value.trim(),
+        access_token: document.getElementById("accToken").value.trim(),
+        device_id: document.getElementById("accDeviceId").value.trim(),
+        proxy: document.getElementById("accProxy").value.trim(),
+        disabled: document.getElementById("accDisabled").checked,
+      };
+
+      try {
+        let res;
+        if (index >= 0) {
+          res = await apiFetch(`/api/admin/accounts/${index}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          res = await apiFetch("/api/admin/accounts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        }
+
+        if (res && res.ok) {
+          showToast(index >= 0 ? "账号更新成功！" : "账号新增成功！");
+          closeAccountModal();
+          loadData();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function toggleDisable(index, shouldDisable) {
+      try {
+        const res = await apiFetch(`/api/admin/accounts/${index}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ disabled: shouldDisable }),
+        });
+        if (res && res.ok) {
+          showToast(shouldDisable ? "账号已禁用" : "账号已重新启用");
+          loadData();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function deleteAccount(index) {
+      if (!confirm("确定要删除该账号凭据吗？")) return;
+      try {
+        const res = await apiFetch(`/api/admin/accounts/${index}`, {
+          method: "DELETE",
+        });
+        if (res && res.ok) {
+          showToast("账号删除成功");
+          loadData();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Raw JSON Editor
+    async function loadRawJson() {
+      try {
+        const res = await apiFetch("/api/admin/accounts/raw");
+        if (res && res.ok) {
+          document.getElementById("rawJsonTextarea").value = res.content || "";
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function formatJson() {
+      const textarea = document.getElementById("rawJsonTextarea");
+      try {
+        const parsed = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(parsed, null, 2);
+        showToast("JSON 格式化成功");
+      } catch (err) {
+        showToast("JSON 格式语法错误：" + err.message, "❌");
+      }
+    }
+
+    async function saveRawJson() {
+      const content = document.getElementById("rawJsonTextarea").value;
+      try {
+        const res = await apiFetch("/api/admin/accounts/raw", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
+        });
+        if (res && res.ok) {
+          showToast("accounts.json 已经成功写入磁盘！");
+          loadData();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderSysConfig(cfg) {
+      const container = document.getElementById("sysConfigDetails");
+      container.innerHTML = `
+        <div style="padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">🔑 VOICE_AUTH_KEY 配置</div>
+          <div style="color: var(--text-secondary); font-size: 0.875rem;">
+            状态: ${cfg.auth_key_configured ? '🟢 已设强密码' : '⚠️ 使用默认密码 (change-me)'}
+          </div>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">📁 配置文件存储路径</div>
+          <div class="mono" style="color: var(--accent); font-size: 0.85rem;">
+            ${cfg.accounts_file}
+          </div>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">🌐 全局 HTTP 代理节点 (VOICE_HTTP_PROXY)</div>
+          <div class="mono" style="color: var(--text-secondary); font-size: 0.85rem;">
+            ${cfg.http_proxy}
+          </div>
+        </div>
+      `;
+    }
+
+    function openVoicePage() {
+      window.location.href = "/voice.html";
+    }
+
+    // Auto Init
+    if (!currentAuthKey) {
+      document.getElementById("authModal").classList.add("active");
+    } else {
+      loadData();
+    }
+  </script>
+</body>
+</html>
